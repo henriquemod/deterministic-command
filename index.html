@@ -1,0 +1,2449 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Eficiência de Tokens: ai:check em Ação</title>
+    <style>
+      :root {
+        --primary: #1e3a5f;
+        --primary-light: #2d5590;
+        --accent: #22c55e;
+        --accent-dark: #16a34a;
+        --warning: #f59e0b;
+        --warning-dark: #d97706;
+        --danger: #ef4444;
+        --danger-muted: #fca5a5;
+        --neutral: #94a3b8;
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --surface-2: #f1f5f9;
+        --border: #e2e8f0;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --text-subtle: #94a3b8;
+        --shadow-sm:
+          0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+        --shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+        --shadow-lg:
+          0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.06);
+        --radius: 12px;
+        --radius-sm: 8px;
+        --nav-height: 60px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --primary: #3b82f6;
+          --primary-light: #60a5fa;
+          --accent: #22c55e;
+          --accent-dark: #4ade80;
+          --warning: #f59e0b;
+          --bg: #0f172a;
+          --surface: #1e293b;
+          --surface-2: #0f172a;
+          --border: #334155;
+          --text: #f1f5f9;
+          --text-muted: #94a3b8;
+          --text-subtle: #64748b;
+          --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+          --shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+          --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        font-size: 16px;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ─── NAV ─────────────────────────────────────────────── */
+      nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--nav-height);
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        padding: 0 1.5rem;
+      }
+
+      .nav-brand {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--primary);
+        margin-right: 2rem;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .nav-brand .brand-dot {
+        width: 8px;
+        height: 8px;
+        background: var(--accent);
+        border-radius: 50%;
+        display: inline-block;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 0.25rem;
+        list-style: none;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+
+      .nav-links::-webkit-scrollbar {
+        display: none;
+      }
+
+      .nav-links a {
+        display: block;
+        padding: 0.4rem 0.85rem;
+        border-radius: 6px;
+        text-decoration: none;
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        font-weight: 500;
+        white-space: nowrap;
+        transition:
+          color 0.2s,
+          background 0.2s;
+      }
+
+      .nav-links a:hover {
+        color: var(--primary);
+        background: var(--surface-2);
+      }
+
+      /* ─── LAYOUT ─────────────────────────────────────────── */
+      main {
+        padding-top: var(--nav-height);
+      }
+
+      section {
+        padding: 5rem 1.5rem;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .section-header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      .section-label {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--primary);
+        background: color-mix(in srgb, var(--primary) 10%, transparent);
+        padding: 0.3rem 0.9rem;
+        border-radius: 20px;
+        margin-bottom: 0.75rem;
+      }
+
+      .section-title {
+        font-size: clamp(1.75rem, 4vw, 2.5rem);
+        font-weight: 800;
+        color: var(--text);
+        line-height: 1.2;
+        margin-bottom: 0.75rem;
+      }
+
+      .section-subtitle {
+        font-size: 1.05rem;
+        color: var(--text-muted);
+        max-width: 580px;
+        margin: 0 auto;
+      }
+
+      /* ─── HERO ───────────────────────────────────────────── */
+      #hero {
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          #0e2847 50%,
+          #1a1040 100%
+        );
+        color: white;
+        padding: 7rem 1.5rem 5rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      #hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse at 80% 20%,
+            rgba(34, 197, 94, 0.12) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse at 20% 80%,
+            rgba(59, 130, 246, 0.1) 0%,
+            transparent 60%
+          );
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+      }
+
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(34, 197, 94, 0.15);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        color: #4ade80;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 1.5rem;
+      }
+
+      .hero-badge-dot {
+        width: 6px;
+        height: 6px;
+        background: #4ade80;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.5;
+          transform: scale(0.8);
+        }
+      }
+
+      .hero-title {
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        font-weight: 900;
+        line-height: 1.1;
+        margin-bottom: 1rem;
+        letter-spacing: -0.02em;
+      }
+
+      .hero-title span {
+        color: #4ade80;
+      }
+
+      .hero-subtitle {
+        font-size: clamp(1rem, 2vw, 1.2rem);
+        color: rgba(255, 255, 255, 0.75);
+        max-width: 680px;
+        margin: 0 auto 2.5rem;
+        line-height: 1.7;
+      }
+
+      .hero-counter-wrap {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.06);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: var(--radius);
+        padding: 2rem 3rem;
+        margin-bottom: 3rem;
+      }
+
+      .hero-counter-label {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+      }
+
+      .hero-counter {
+        font-size: clamp(3.5rem, 10vw, 6rem);
+        font-weight: 900;
+        color: #4ade80;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .hero-counter-sub {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 0.25rem;
+      }
+
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .kpi-card {
+        background: rgba(255, 255, 255, 0.07);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius);
+        padding: 1.25rem 1.5rem;
+        text-align: left;
+        transition:
+          transform 0.2s,
+          border-color 0.2s;
+      }
+
+      .kpi-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .kpi-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        display: block;
+      }
+
+      .kpi-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: white;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+      }
+
+      .kpi-label {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.55);
+        font-weight: 500;
+      }
+
+      .hero-intro {
+        max-width: 720px;
+        margin: 2.5rem auto 0;
+        font-size: 0.975rem;
+        color: rgba(255, 255, 255, 0.65);
+        line-height: 1.75;
+        text-align: center;
+      }
+
+      /* ─── CHARTS ─────────────────────────────────────────── */
+      #resultados {
+        background: var(--bg);
+      }
+
+      .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      @media (min-width: 1024px) {
+        .charts-grid {
+          grid-template-columns: 1.5fr 1fr;
+        }
+        .charts-grid .chart-card:first-child {
+          grid-column: 1 / -1;
+        }
+      }
+
+      .chart-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.75rem;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .chart-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 0.3rem;
+      }
+
+      .chart-description {
+        font-size: 0.825rem;
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+      }
+
+      .chart-legend {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+
+      svg text {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+
+      .tooltip {
+        position: fixed;
+        background: var(--text);
+        color: var(--bg);
+        padding: 0.6rem 0.9rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.8rem;
+        pointer-events: none;
+        z-index: 9999;
+        box-shadow: var(--shadow-lg);
+        max-width: 220px;
+        line-height: 1.5;
+        display: none;
+      }
+
+      .tooltip strong {
+        display: block;
+        margin-bottom: 0.2rem;
+        font-size: 0.85rem;
+      }
+
+      /* ─── BENCHMARK CARDS ────────────────────────────────── */
+      #benchmarks {
+        background: var(--surface-2);
+      }
+
+      .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+        margin-bottom: 2rem;
+      }
+
+      .filter-btn {
+        padding: 0.4rem 0.9rem;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .filter-btn.active,
+      .filter-btn:hover {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+      }
+
+      .sort-select {
+        margin-left: auto;
+        padding: 0.4rem 0.9rem;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        cursor: pointer;
+        outline: none;
+        appearance: none;
+        padding-right: 1.5rem;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.5rem center;
+      }
+
+      .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+      }
+
+      .bench-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        cursor: pointer;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s,
+          border-color 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .bench-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--primary);
+      }
+
+      .bench-card.edge-case {
+        border-left: 3px solid var(--warning);
+      }
+      .bench-card.standard {
+        border-left: 3px solid var(--primary);
+      }
+
+      .card-badge {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.75rem;
+      }
+
+      .card-badge.edge {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .card-badge.std {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .card-badge.edge {
+          background: rgba(245, 158, 11, 0.2);
+          color: #fcd34d;
+        }
+        .card-badge.std {
+          background: rgba(59, 130, 246, 0.2);
+          color: #93c5fd;
+        }
+      }
+
+      .card-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 1rem;
+        line-height: 1.3;
+      }
+
+      .card-donut-row {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .card-donut {
+        flex-shrink: 0;
+      }
+
+      .card-donut-percent {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--accent);
+        line-height: 1;
+      }
+
+      .card-donut-label {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+      }
+
+      .token-flow {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+      }
+
+      .token-normal {
+        color: var(--danger);
+        font-weight: 600;
+      }
+      .token-compact {
+        color: var(--accent-dark);
+        font-weight: 600;
+      }
+      .token-arrow {
+        color: var(--accent);
+        font-size: 1rem;
+      }
+
+      .card-meta {
+        display: flex;
+        gap: 0.75rem;
+        font-size: 0.75rem;
+        color: var(--text-subtle);
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border);
+      }
+
+      /* ─── MODAL ──────────────────────────────────────────── */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 2000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+
+      .modal-overlay.open {
+        display: flex;
+      }
+
+      .modal {
+        background: var(--surface);
+        border-radius: var(--radius);
+        max-width: 780px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: var(--shadow-lg);
+        animation: modalIn 0.25s ease;
+      }
+
+      @keyframes modalIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95) translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 1.75rem 1.75rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+        gap: 1rem;
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 1.5rem;
+        line-height: 1;
+        padding: 0.25rem;
+        border-radius: 6px;
+        flex-shrink: 0;
+        transition:
+          color 0.2s,
+          background 0.2s;
+      }
+
+      .modal-close:hover {
+        color: var(--text);
+        background: var(--surface-2);
+      }
+
+      .modal-body {
+        padding: 1.75rem;
+      }
+
+      .modal-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .modal-stat {
+        background: var(--surface-2);
+        border-radius: var(--radius-sm);
+        padding: 0.85rem;
+      }
+
+      .modal-stat-label {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        font-weight: 500;
+        margin-bottom: 0.2rem;
+      }
+      .modal-stat-value {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .modal-section-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+        margin-bottom: 0.75rem;
+        margin-top: 1.5rem;
+      }
+
+      .command-block {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem 1rem;
+        font-family:
+          'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+        font-size: 0.825rem;
+        color: var(--text);
+        margin-bottom: 0.5rem;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+
+      .before-after-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+      }
+
+      @media (max-width: 600px) {
+        .before-after-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .code-panel {
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+
+      .code-panel-header {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .code-panel.before .code-panel-header {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .code-panel.after .code-panel-header {
+        background: #dcfce7;
+        color: #166534;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .code-panel.before .code-panel-header {
+          background: rgba(239, 68, 68, 0.15);
+          color: #fca5a5;
+        }
+        .code-panel.after .code-panel-header {
+          background: rgba(34, 197, 94, 0.15);
+          color: #86efac;
+        }
+      }
+
+      .code-panel pre {
+        padding: 0.75rem;
+        font-size: 0.72rem;
+        font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+        line-height: 1.5;
+        background: var(--surface-2);
+        overflow-x: auto;
+        white-space: pre;
+        color: var(--text-muted);
+      }
+
+      .modal-insight {
+        background: color-mix(in srgb, var(--accent) 8%, transparent);
+        border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+        border-radius: var(--radius-sm);
+        padding: 1rem 1.1rem;
+        font-size: 0.875rem;
+        color: var(--text);
+        margin-top: 1rem;
+        line-height: 1.6;
+      }
+
+      /* ─── BENEFITS ───────────────────────────────────────── */
+      #beneficios {
+        background: var(--surface);
+      }
+
+      .benefits-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .benefit-panel {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 2rem;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
+
+      .benefit-panel:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .benefit-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.25rem;
+        font-size: 1.5rem;
+      }
+
+      .benefit-icon.green {
+        background: #dcfce7;
+      }
+      .benefit-icon.blue {
+        background: #dbeafe;
+      }
+      .benefit-icon.amber {
+        background: #fef3c7;
+      }
+      .benefit-icon.purple {
+        background: #ede9fe;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .benefit-icon.green {
+          background: rgba(34, 197, 94, 0.15);
+        }
+        .benefit-icon.blue {
+          background: rgba(59, 130, 246, 0.15);
+        }
+        .benefit-icon.amber {
+          background: rgba(245, 158, 11, 0.15);
+        }
+        .benefit-icon.purple {
+          background: rgba(139, 92, 246, 0.15);
+        }
+      }
+
+      .benefit-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 0.3rem;
+      }
+
+      .benefit-subtitle {
+        font-size: 0.825rem;
+        color: var(--text-muted);
+        font-weight: 500;
+        margin-bottom: 0.85rem;
+      }
+
+      .benefit-body {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        line-height: 1.7;
+      }
+
+      .benefit-highlight {
+        display: inline-block;
+        margin-top: 0.75rem;
+        padding: 0.35rem 0.75rem;
+        background: var(--surface);
+        border-radius: 6px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--accent-dark);
+        border: 1px solid var(--border);
+      }
+
+      .scaling-bar {
+        margin-top: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+
+      .scaling-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+
+      .scaling-row-label {
+        width: 60px;
+        flex-shrink: 0;
+      }
+
+      .scaling-bar-track {
+        flex: 1;
+        height: 6px;
+        background: var(--border);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .scaling-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+        background: var(--accent);
+        transition: width 1s ease;
+      }
+
+      .scaling-row-pct {
+        width: 40px;
+        text-align: right;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      /* ─── METHODOLOGY ────────────────────────────────────── */
+      #metodologia {
+        background: var(--bg);
+      }
+
+      .methodology-intro {
+        max-width: 720px;
+        margin: 0 auto 2rem;
+        font-size: 1rem;
+        color: var(--text-muted);
+        line-height: 1.8;
+        text-align: center;
+      }
+
+      details {
+        max-width: 720px;
+        margin: 0 auto;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      summary {
+        padding: 1.1rem 1.5rem;
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        list-style: none;
+        user-select: none;
+      }
+
+      summary::-webkit-details-marker {
+        display: none;
+      }
+
+      summary::after {
+        content: '▾';
+        color: var(--text-muted);
+        transition: transform 0.2s;
+      }
+
+      details[open] summary::after {
+        transform: rotate(180deg);
+      }
+
+      .tech-details {
+        padding: 1.25rem 1.5rem;
+        border-top: 1px solid var(--border);
+      }
+
+      .tech-item {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 0.85rem;
+        font-size: 0.875rem;
+        line-height: 1.6;
+      }
+
+      .tech-item-label {
+        font-weight: 700;
+        color: var(--text);
+        flex-shrink: 0;
+        width: 160px;
+      }
+
+      .tech-item-value {
+        color: var(--text-muted);
+      }
+
+      code {
+        font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+        font-size: 0.85em;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 0.1em 0.35em;
+      }
+
+      /* ─── FOOTER ─────────────────────────────────────────── */
+      footer {
+        background: var(--primary);
+        color: rgba(255, 255, 255, 0.7);
+        text-align: center;
+        padding: 2rem 1.5rem;
+        font-size: 0.825rem;
+        line-height: 2;
+      }
+
+      footer a {
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+      }
+      footer a:hover {
+        color: white;
+      }
+
+      /* ─── UTILITIES ──────────────────────────────────────── */
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        clip: rect(0, 0, 0, 0);
+        overflow: hidden;
+      }
+
+      .animate-in {
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.5s,
+          transform 0.5s;
+      }
+      .animate-in.visible {
+        opacity: 1;
+        transform: none;
+      }
+
+      @media (max-width: 767px) {
+        section {
+          padding: 3.5rem 1rem;
+        }
+        .tech-item {
+          flex-direction: column;
+          gap: 0.2rem;
+        }
+        .tech-item-label {
+          width: auto;
+        }
+        nav {
+          padding: 0 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ─── NAVIGATION ─────────────────────────────────── -->
+    <nav aria-label="Navegação principal">
+      <div class="nav-brand">
+        <span class="brand-dot"></span>
+        ai:check
+      </div>
+      <ul class="nav-links" role="list">
+        <li><a href="#hero">Visão Geral</a></li>
+        <li><a href="#resultados">Resultados</a></li>
+        <li><a href="#benchmarks">Benchmarks</a></li>
+        <li><a href="#beneficios">Por que ai:check?</a></li>
+        <li><a href="#metodologia">Metodologia</a></li>
+      </ul>
+    </nav>
+
+    <main>
+      <!-- ─── HERO ───────────────────────────────────────── -->
+      <section id="hero">
+        <div class="container hero-content">
+          <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
+            Relatório de Benchmarks — 11 cenários
+          </div>
+
+          <h1 class="hero-title">
+            Eficiência de Tokens:<br />
+            <span>ai:check</span> em Ação
+          </h1>
+
+          <p class="hero-subtitle">
+            Um comando determinístico que combina lint + typecheck e reduz
+            drasticamente o consumo de tokens por agentes de IA
+          </p>
+
+          <div class="hero-counter-wrap">
+            <div class="hero-counter-label">Economia média em tokens</div>
+            <div class="hero-counter" id="hero-counter" aria-live="polite">
+              0%
+            </div>
+            <div class="hero-counter-sub">em 11 cenários testados</div>
+          </div>
+
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <span class="kpi-icon">↓</span>
+              <div class="kpi-value" id="kpi-saved">—</div>
+              <div class="kpi-label">Tokens Economizados (total)</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-icon">⚡</span>
+              <div class="kpi-value" id="kpi-peak">—</div>
+              <div class="kpi-label">Pico de Economia</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-icon">✓</span>
+              <div class="kpi-value">11</div>
+              <div class="kpi-label">Cenários Testados</div>
+            </div>
+          </div>
+
+          <p class="hero-intro">
+            Este relatório apresenta os resultados de 11 benchmarks comparando a
+            saída tradicional de lint e typecheck com o formato compacto do
+            <code
+              style="
+                background: rgba(255, 255, 255, 0.1);
+                border-color: rgba(255, 255, 255, 0.2);
+                color: #4ade80;
+              "
+              >ai:check</code
+            >. Os dados demonstram como a padronização e compactação de output
+            impactam diretamente o consumo — e o custo — de tokens em fluxos com
+            IA.
+          </p>
+        </div>
+      </section>
+
+      <!-- ─── CHARTS ─────────────────────────────────────── -->
+      <section id="resultados">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-label">Resultados</span>
+            <h2 class="section-title">Análise dos Dados</h2>
+            <p class="section-subtitle">
+              Três perspectivas sobre a economia de tokens: por cenário, por
+              escala e comparação absoluta.
+            </p>
+          </div>
+
+          <div class="charts-grid">
+            <!-- B1: Bar chart - reduction per scenario -->
+            <div class="chart-card animate-in">
+              <div class="chart-title">Economia por Cenário (%)</div>
+              <div class="chart-description">
+                Porcentagem de tokens economizados em cada cenário de teste.
+                Barras em laranja destacam casos extremos.
+              </div>
+              <div id="chart-bar-container" style="overflow-x: auto">
+                <svg id="chart-bar" style="min-width: 560px"></svg>
+              </div>
+              <div class="chart-legend">
+                <div class="legend-item">
+                  <span class="legend-dot" style="background: #22c55e"></span
+                  >Cenário padrão
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot" style="background: #f59e0b"></span
+                  >Caso extremo
+                </div>
+              </div>
+            </div>
+
+            <!-- B2: Scaling curve -->
+            <div class="chart-card animate-in">
+              <div class="chart-title">Curva de Escala</div>
+              <div class="chart-description">
+                Economia (%) conforme o número de arquivos aumenta. Cenários TS
+                + Lint combinados.
+              </div>
+              <svg id="chart-scale" width="100%" height="240"></svg>
+              <div class="chart-legend">
+                <div class="legend-item">
+                  <span
+                    class="legend-dot"
+                    style="background: #3b82f6; border-radius: 50%"
+                  ></span
+                  >TS + Lint combinados
+                </div>
+              </div>
+            </div>
+
+            <!-- B3: Normal vs Compact comparison -->
+            <div class="chart-card animate-in">
+              <div class="chart-title">Tokens: Normal vs. Compacto</div>
+              <div class="chart-description">
+                Volume absoluto de tokens consumidos por cada método. A
+                diferença é dramática nos casos extremos.
+              </div>
+              <div style="overflow-x: auto">
+                <svg id="chart-compare" style="min-width: 560px"></svg>
+              </div>
+              <div class="chart-legend">
+                <div class="legend-item">
+                  <span class="legend-dot" style="background: #ef4444"></span
+                  >Normal (verboso)
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot" style="background: #22c55e"></span
+                  >Compacto (ai:check)
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── BENCHMARK CARDS ────────────────────────────── -->
+      <section id="benchmarks">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-label">Benchmarks Detalhados</span>
+            <h2 class="section-title">Explore os Cenários</h2>
+            <p class="section-subtitle">
+              Clique em qualquer card para ver detalhes completos, comandos, e
+              comparação visual antes/depois.
+            </p>
+          </div>
+
+          <div class="filter-bar">
+            <button class="filter-btn active" data-filter="all">Todos</button>
+            <button class="filter-btn" data-filter="lint">Somente Lint</button>
+            <button class="filter-btn" data-filter="typecheck">
+              Somente TypeScript
+            </button>
+            <button class="filter-btn" data-filter="both">
+              Lint + TypeScript
+            </button>
+            <button class="filter-btn" data-filter="edge">
+              Casos Extremos
+            </button>
+            <select
+              class="sort-select"
+              id="sort-select"
+              aria-label="Ordenar por"
+            >
+              <option value="reduction-desc">Maior economia</option>
+              <option value="reduction-asc">Menor economia</option>
+              <option value="files-desc">Mais arquivos</option>
+              <option value="files-asc">Menos arquivos</option>
+            </select>
+          </div>
+
+          <div class="cards-grid" id="cards-grid"></div>
+        </div>
+      </section>
+
+      <!-- ─── BENEFITS ──────────────────────────────────── -->
+      <section id="beneficios">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-label">Por que ai:check?</span>
+            <h2 class="section-title">Benefícios para o Negócio</h2>
+            <p class="section-subtitle">
+              Mais do que um script — uma mudança de paradigma no uso de IA em
+              CI/CD.
+            </p>
+          </div>
+
+          <div class="benefits-grid">
+            <div class="benefit-panel animate-in">
+              <div class="benefit-icon green">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#16a34a"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="12" y1="1" x2="12" y2="23" />
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </div>
+              <h3 class="benefit-title">Redução Imediata de Custos</h3>
+              <p class="benefit-subtitle">
+                Menos tokens = menor custo por execução
+              </p>
+              <p class="benefit-body">
+                Cada interação de um agente com output de lint/typecheck consome
+                tokens cobrados pelo provedor de IA. Com economias de 46% a 97%,
+                a redução de custo é direta e mensurável. Em projetos com 30+
+                arquivos, o impacto se torna ainda mais expressivo.
+              </p>
+              <span class="benefit-highlight"
+                >Em cenários com 30+ arquivos, a economia chega a
+                <strong>84%</strong></span
+              >
+            </div>
+
+            <div class="benefit-panel animate-in">
+              <div class="benefit-icon blue">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#1e40af"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+              </div>
+              <h3 class="benefit-title">Execução Determinística</h3>
+              <p class="benefit-subtitle">
+                Um comando, um resultado previsível
+              </p>
+              <p class="benefit-body">
+                A abordagem tradicional exige que o agente execute dois
+                comandos, decida a ordem e trate falhas parciais. O
+                <code>ai:check</code> usa <code>;</code> para sempre executar
+                ambos, produzindo um formato unificado. Isso elimina uma classe
+                inteira de erros de decisão do agente.
+              </p>
+              <span class="benefit-highlight"
+                >Menos decisões = menos pontos de falha</span
+              >
+            </div>
+
+            <div class="benefit-panel animate-in">
+              <div class="benefit-icon amber">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#92400e"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                  <polyline points="17 6 23 6 23 12" />
+                </svg>
+              </div>
+              <h3 class="benefit-title">Escalabilidade Comprovada</h3>
+              <p class="benefit-subtitle">
+                Quanto maior o projeto, maior o benefício
+              </p>
+              <p class="benefit-body">
+                De 46% de economia com 1 arquivo a 84% com 30 arquivos, e 94–97%
+                nos casos extremos. A economia de tokens se multiplica conforme
+                o projeto cresce, tornando esta solução ainda mais valiosa ao
+                longo do tempo.
+              </p>
+              <div class="scaling-bar" id="scaling-bars"></div>
+            </div>
+
+            <div class="benefit-panel animate-in">
+              <div class="benefit-icon purple">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5b21b6"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="16 18 22 12 16 6" />
+                  <polyline points="8 6 2 12 8 18" />
+                </svg>
+              </div>
+              <h3 class="benefit-title">Output Estruturado para Agentes</h3>
+              <p class="benefit-subtitle">
+                Formato padronizado que agentes processam com facilidade
+              </p>
+              <p class="benefit-body">
+                O formato compacto agrupa erros por regra/código, usa uma linha
+                por erro e elimina formatação decorativa. Não é apenas menor — é
+                mais analisável, resultando em melhor desempenho do agente nas
+                tarefas subsequentes (correção de erros, priorização de issues,
+                etc.).
+              </p>
+              <span class="benefit-highlight"
+                >Estrutura consistente → raciocínio mais eficiente</span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── METHODOLOGY ─────────────────────────────────── -->
+      <section id="metodologia">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-label">Metodologia</span>
+            <h2 class="section-title">Como os Testes Foram Realizados</h2>
+          </div>
+
+          <p class="methodology-intro">
+            Para garantir resultados confiáveis, realizamos 11 testes
+            controlados. Em cada teste, introduzimos erros conhecidos em um
+            número específico de arquivos e comparamos o output do método
+            tradicional (lint + typecheck separados) com o output do
+            <code>ai:check</code>. Todos os testes foram executados nas mesmas
+            condições (mesma branch, mesmo commit) para eliminar variáveis
+            externas.
+          </p>
+
+          <details>
+            <summary>Detalhes Técnicos</summary>
+            <div class="tech-details">
+              <div class="tech-item">
+                <div class="tech-item-label">Injeção de Erros</div>
+                <div class="tech-item-value">
+                  Lint: <code>console.log()</code> em arquivos .tsx. TypeScript:
+                  <code>.toUpperCase()</code> em valor numérico (prop inválida).
+                  Ambos garantem erros reais e reproduzíveis.
+                </div>
+              </div>
+              <div class="tech-item">
+                <div class="tech-item-label">Escalonamento</div>
+                <div class="tech-item-value">
+                  1, 5, 10, 15 e 30 arquivos com erros por tipo, individualmente
+                  e combinados.
+                </div>
+              </div>
+              <div class="tech-item">
+                <div class="tech-item-label">Casos Extremos</div>
+                <div class="tech-item-value">
+                  <strong>97.2%</strong>: ESLint com novas regras forçadas
+                  (output repetitivo por regra × arquivo).<br />
+                  <strong>94.1%</strong>: Mudança de shape em componente crucial
+                  (cascata de erros de tipo).
+                </div>
+              </div>
+              <div class="tech-item">
+                <div class="tech-item-label">Estimativa de Tokens</div>
+                <div class="tech-item-value">
+                  Fórmula: <code>chars / 4</code>. Códigos ANSI removidos do
+                  output normal antes da contagem de caracteres para garantir
+                  comparação justa.
+                </div>
+              </div>
+              <div class="tech-item">
+                <div class="tech-item-label">Ambiente</div>
+                <div class="tech-item-value">
+                  Branch <code>feat/ai-improvements</code>, commit
+                  <code>ddc656664</code>. Execução local, sem interferência de
+                  CI.
+                </div>
+              </div>
+              <div class="tech-item">
+                <div class="tech-item-label">Comparação Justa</div>
+                <div class="tech-item-value">
+                  Códigos de escape ANSI removidos do output normal antes da
+                  contagem de caracteres. Somente o conteúdo textual é
+                  comparado.
+                </div>
+              </div>
+              <div class="tech-item">
+                <div class="tech-item-label">Custo de Referência</div>
+                <div class="tech-item-value">
+                  Calculado como <code>(tokensSalvos / 1000) × $0.003</code> —
+                  preço de input do Claude Sonnet. Valor ilustrativo para
+                  comparação relativa.
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <!-- ─── FOOTER ──────────────────────────────────────── -->
+    <footer>
+      <div>
+        Branch
+        <code
+          style="
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: white;
+          "
+          >feat/ai-improvements</code
+        >
+        &nbsp;·&nbsp; Commit
+        <code
+          style="
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: white;
+          "
+          >ddc656664</code
+        >
+        &nbsp;·&nbsp; 24 fev. 2026
+      </div>
+      <div>
+        Gerado automaticamente por
+        <strong>benchmark-builder</strong> &nbsp;·&nbsp;
+        <a href="#hero">↑ Voltar ao topo</a>
+      </div>
+    </footer>
+
+    <!-- ─── MODAL ──────────────────────────────────────── -->
+    <div
+      class="modal-overlay"
+      id="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <div class="modal" id="modal">
+        <div class="modal-header">
+          <div>
+            <div
+              id="modal-badge"
+              class="card-badge"
+              style="margin-bottom: 0.5rem"
+            ></div>
+            <h2
+              class="chart-title"
+              id="modal-title"
+              style="font-size: 1.1rem"
+            ></h2>
+            <div
+              id="modal-date"
+              style="
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                margin-top: 0.2rem;
+              "
+            ></div>
+          </div>
+          <button class="modal-close" id="modal-close" aria-label="Fechar">
+            ×
+          </button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+      </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+      // ─── DATA ─────────────────────────────────────────────────
+      const benchmarks = [
+        {
+          scenario: 'Lint: single console.log in one file',
+          scenarioLabel: 'Lint: 1 arquivo',
+          date: '2026-02-24T22:17:21',
+          normalTokens: 78,
+          compactTokens: 29,
+          savedTokens: 49,
+          reductionPercent: 62.8,
+          normalChars: 306,
+          compactChars: 112,
+          normalCommand: 'npm run lint:check:quiet ; npm run type:check',
+          compactCommand: 'npm run ai:check',
+          filesChanged: 1,
+          isEdgeCase: false,
+          diffSummary: '1 file changed, 2 insertions(+)',
+          errorTypes: ['lint'],
+        },
+        {
+          scenario: 'Lint: single console.log in five files',
+          scenarioLabel: 'Lint: 5 arquivos',
+          date: '2026-02-24T22:19:11',
+          normalTokens: 246,
+          compactTokens: 77,
+          savedTokens: 169,
+          reductionPercent: 68.7,
+          normalChars: 978,
+          compactChars: 306,
+          normalCommand: 'npm run lint:check:quiet ; npm run type:check',
+          compactCommand: 'npm run ai:check',
+          filesChanged: 5,
+          isEdgeCase: false,
+          diffSummary: '5 files changed, 10 insertions(+)',
+          errorTypes: ['lint'],
+        },
+        {
+          scenario: 'TS: single invalid prop in one file',
+          scenarioLabel: 'TS: 1 arquivo',
+          date: '2026-02-24T22:22:40',
+          normalTokens: 65,
+          compactTokens: 35,
+          savedTokens: 30,
+          reductionPercent: 46.2,
+          normalChars: 256,
+          compactChars: 139,
+          normalCommand: 'npm run lint:check:quiet ; npm run type:check',
+          compactCommand: 'npm run ai:check',
+          filesChanged: 1,
+          isEdgeCase: false,
+          diffSummary: '1 file changed, 3 insertions(+)',
+          errorTypes: ['typecheck'],
+        },
+        {
+          scenario: 'TS: single invalid prop in five files',
+          scenarioLabel: 'TS: 5 arquivos',
+          date: '2026-02-24T22:24:21',
+          normalTokens: 181,
+          compactTokens: 80,
+          savedTokens: 101,
+          reductionPercent: 55.8,
+          normalChars: 723,
+          compactChars: 318,
+          normalCommand: 'npm run lint:check:quiet ; npm run type:check',
+          compactCommand: 'npm run ai:check',
+          filesChanged: 5,
+          isEdgeCase: false,
+          diffSummary: '5 files changed, 15 insertions(+)',
+          errorTypes: ['typecheck'],
+        },
+        {
+          scenario:
+            'TS: single invalid prop in one file + Lint: single console.log in one file',
+          scenarioLabel: 'TS + Lint: 1 arquivo cada',
+          date: '2026-02-24T22:26:57',
+          normalTokens: 116,
+          compactTokens: 53,
+          savedTokens: 63,
+          reductionPercent: 54.3,
+          normalChars: 459,
+          compactChars: 208,
+          normalCommand: 'npm run lint:check:quiet ; npm run type:check',
+          compactCommand: 'npm run ai:check',
+          filesChanged: 2,
+          isEdgeCase: false,
+          diffSummary: '2 files changed, 5 insertions(+)',
+          errorTypes: ['lint', 'typecheck'],
+        },
+        {
+          scenario:
+            'TS: single invalid prop in five files + Lint: single console.log in five files',
+          scenarioLabel: 'TS + Lint: 5 arquivos cada',
+          date: '2026-02-24T22:29:48',
+          normalTokens: 412,
+          compactTokens: 157,
+          savedTokens: 255,
+          reductionPercent: 61.9,
+          normalChars: 1643,
+          compactChars: 626,
+          normalCommand: 'npm run lint:check:quiet ; npm run type:check',
+          compactCommand: 'npm run ai:check',
+          filesChanged: 10,
+          isEdgeCase: false,
+          diffSummary: '10 files changed, 24 insertions(+)',
+          errorTypes: ['lint', 'typecheck'],
+        },
+        {
+          scenario:
+            'TS: single invalid prop in ten files + Lint: single console.log in ten files',
+          scenarioLabel: 'TS + Lint: 10 arquivos cada',
+          date: '2026-02-24T22:36:02',
+          normalTokens: 768,
+          compactTokens: 274,
+          savedTokens: 494,
+          reductionPercent: 64.3,
+          normalChars: 3067,
+          compactChars: 1095,
+          normalCommand: 'npm run lint:check:quiet ; npm run type:check',
+          compactCommand: 'npm run ai:check',
+          filesChanged: 20,
+          isEdgeCase: false,
+          diffSummary: '20 files changed, 45 insertions(+)',
+          errorTypes: ['lint', 'typecheck'],
+        },
+        {
+          scenario:
+            'TS: single invalid prop in fifteen files + Lint: single console.log in fifteen files',
+          scenarioLabel: 'TS + Lint: 15 arquivos cada',
+          date: '2026-02-24T22:38:43',
+          normalTokens: 1123,
+          compactTokens: 391,
+          savedTokens: 732,
+          reductionPercent: 65.2,
+          normalChars: 4487,
+          compactChars: 1560,
+          normalCommand: 'npm run lint:check:quiet ; npm run type:check',
+          compactCommand: 'npm run ai:check',
+          filesChanged: 30,
+          isEdgeCase: false,
+          diffSummary: '30 files changed, 64 insertions(+)',
+          errorTypes: ['lint', 'typecheck'],
+        },
+        {
+          scenario:
+            'TS: single invalid prop in thirty files + Lint: single console.log in thirty files',
+          scenarioLabel: 'TS + Lint: 30 arquivos cada',
+          date: '2026-02-24T22:43:50',
+          normalTokens: 2203,
+          compactTokens: 354,
+          savedTokens: 1849,
+          reductionPercent: 83.9,
+          normalChars: 8806,
+          compactChars: 1414,
+          normalCommand: 'npm run lint:check:quiet ; npm run type:check',
+          compactCommand: 'npm run ai:check',
+          filesChanged: 30,
+          isEdgeCase: false,
+          diffSummary: '30 files changed, 109 insertions(+)',
+          errorTypes: ['lint', 'typecheck'],
+        },
+        {
+          scenario: '[EDGE-CASE] Lint: enforcing new rules',
+          scenarioLabel: 'Edge: Lint regras novas',
+          date: '2026-02-24T22:50:51',
+          normalTokens: 7608,
+          compactTokens: 212,
+          savedTokens: 7396,
+          reductionPercent: 97.2,
+          normalChars: 30429,
+          compactChars: 847,
+          normalCommand: 'npm run lint:check:quiet ; npm run type:check',
+          compactCommand: 'npm run ai:check',
+          filesChanged: 3,
+          isEdgeCase: true,
+          diffSummary: '3 files changed, 146 insertions(+), 306 deletions(-)',
+          errorTypes: ['lint'],
+        },
+        {
+          scenario: '[EDGE-CASE] TS: change data shape in a crucial component',
+          scenarioLabel: 'Edge: TS mudança de shape',
+          date: '2026-02-24T22:55:06',
+          normalTokens: 3807,
+          compactTokens: 224,
+          savedTokens: 3583,
+          reductionPercent: 94.1,
+          normalChars: 15227,
+          compactChars: 892,
+          normalCommand: 'npm run lint:check:quiet ; npm run type:check',
+          compactCommand: 'npm run ai:check',
+          filesChanged: 1,
+          isEdgeCase: true,
+          diffSummary: '1 file changed, 11 deletions(-)',
+          errorTypes: ['typecheck'],
+        },
+      ];
+
+      // ─── COMPUTED STATS ────────────────────────────────────────
+      const totalNormal = benchmarks.reduce((s, b) => s + b.normalTokens, 0);
+      const totalCompact = benchmarks.reduce((s, b) => s + b.compactTokens, 0);
+      const totalSaved = benchmarks.reduce((s, b) => s + b.savedTokens, 0);
+      const avgReduction =
+        benchmarks.reduce((s, b) => s + b.reductionPercent, 0) /
+        benchmarks.length;
+      const maxReduction = Math.max(
+        ...benchmarks.map((b) => b.reductionPercent),
+      );
+
+      // ─── HERO ANIMATION ───────────────────────────────────────
+      function animateCounter(el, target, suffix, duration) {
+        const start = performance.now();
+        function update(now) {
+          const elapsed = now - start;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          el.textContent = (eased * target).toFixed(1) + suffix;
+          if (progress < 1) requestAnimationFrame(update);
+          else el.textContent = target.toFixed(1) + suffix;
+        }
+        requestAnimationFrame(update);
+      }
+
+      window.addEventListener('load', () => {
+        const counterEl = document.getElementById('hero-counter');
+        animateCounter(counterEl, avgReduction, '%', 1800);
+
+        document.getElementById('kpi-saved').textContent =
+          totalSaved.toLocaleString('pt-BR') + ' tok';
+        document.getElementById('kpi-peak').textContent =
+          maxReduction.toFixed(1) + '%';
+
+        renderCharts();
+        renderCards();
+        renderScalingBars();
+        setupIntersectionObserver();
+        setupFilters();
+        setupModal();
+      });
+
+      // ─── TOOLTIP ──────────────────────────────────────────────
+      const tooltip = document.getElementById('tooltip');
+      function showTooltip(e, html) {
+        tooltip.innerHTML = html;
+        tooltip.style.display = 'block';
+        moveTooltip(e);
+      }
+      function moveTooltip(e) {
+        let x = e.clientX + 14,
+          y = e.clientY - 10;
+        if (x + 230 > window.innerWidth) x = e.clientX - 230;
+        if (y + 80 > window.innerHeight) y = e.clientY - 80;
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
+      }
+      function hideTooltip() {
+        tooltip.style.display = 'none';
+      }
+
+      // ─── CHART B1: BAR CHART ──────────────────────────────────
+      function renderBarChart() {
+        const svg = document.getElementById('chart-bar');
+        const containerW = svg.parentElement.offsetWidth || 700;
+        const W = Math.max(containerW, 560);
+        const marginLeft = 20,
+          marginRight = 20,
+          marginTop = 30,
+          marginBottom = 80;
+        const chartW = W - marginLeft - marginRight;
+        const H = 300;
+        svg.setAttribute('width', W);
+        svg.setAttribute('height', H);
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+        const n = benchmarks.length;
+        const barW = Math.floor((chartW / n) * 0.62);
+        const gap = chartW / n;
+
+        let html = '';
+
+        // Y-axis guide lines
+        for (let v = 0; v <= 100; v += 25) {
+          const y =
+            marginTop + ((100 - v) / 100) * (H - marginTop - marginBottom);
+          html += `<line x1="${marginLeft}" x2="${W - marginRight}" y1="${y}" y2="${y}" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4"/>`;
+          html += `<text x="${marginLeft - 4}" y="${y + 4}" text-anchor="end" fill="var(--text-muted)" font-size="10">${v}%</text>`;
+        }
+
+        benchmarks.forEach((b, i) => {
+          const x = marginLeft + i * gap + gap / 2 - barW / 2;
+          const barH =
+            (b.reductionPercent / 100) * (H - marginTop - marginBottom);
+          const y = marginTop + (H - marginTop - marginBottom) - barH;
+          const color = b.isEdgeCase ? '#f59e0b' : '#22c55e';
+          const hoverColor = b.isEdgeCase ? '#d97706' : '#16a34a';
+
+          html += `<rect
+      class="bar-rect"
+      x="${x}" y="${H - marginBottom}" width="${barW}" height="0"
+      fill="${color}"
+      rx="4"
+      data-target-y="${y}"
+      data-target-h="${barH}"
+      data-hover="${hoverColor}"
+      data-orig="${color}"
+      style="cursor:pointer;transition:fill 0.15s"
+    />`;
+
+          // Value label above bar
+          html += `<text x="${x + barW / 2}" y="${y - 4}" text-anchor="middle" fill="var(--text)" font-size="9.5" font-weight="700" class="bar-label" style="opacity:0">${b.reductionPercent}%</text>`;
+
+          // X-axis label (rotated)
+          const labelY = H - marginBottom + 10;
+          html += `<text
+      x="${x + barW / 2}" y="${labelY}"
+      text-anchor="end"
+      transform="rotate(-38, ${x + barW / 2}, ${labelY})"
+      fill="var(--text-muted)"
+      font-size="9.5"
+    >${b.scenarioLabel}</text>`;
+        });
+
+        svg.innerHTML = html;
+
+        // Animate bars
+        const bars = svg.querySelectorAll('.bar-rect');
+        const labels = svg.querySelectorAll('.bar-label');
+
+        bars.forEach((bar, i) => {
+          const targetY = parseFloat(bar.dataset.targetY);
+          const targetH = parseFloat(bar.dataset.targetH);
+          const b = benchmarks[i];
+
+          setTimeout(() => {
+            bar.setAttribute('y', targetY);
+            bar.setAttribute('height', targetH);
+            bar.style.transition = 'y 0.6s ease, height 0.6s ease';
+            setTimeout(() => {
+              if (labels[i]) labels[i].style.opacity = 1;
+            }, 500);
+          }, i * 60);
+
+          bar.addEventListener('mousemove', (e) => {
+            bar.setAttribute('fill', bar.dataset.hover);
+            showTooltip(
+              e,
+              `<strong>${b.scenarioLabel}</strong>Normal: ${b.normalTokens.toLocaleString('pt-BR')} tok<br>Compacto: ${b.compactTokens.toLocaleString('pt-BR')} tok<br>Economia: <strong style="color:#22c55e">${b.reductionPercent}%</strong>`,
+            );
+          });
+          bar.addEventListener('mouseleave', () => {
+            bar.setAttribute('fill', bar.dataset.orig);
+            hideTooltip();
+          });
+        });
+      }
+
+      // ─── CHART B2: SCALING CURVE ──────────────────────────────
+      function renderScaleChart() {
+        const svg = document.getElementById('chart-scale');
+        // TS+Lint combined scenarios (indices 4-8, scaled by files per type: 1,5,10,15,30)
+        const scaleData = [
+          { files: 1, reduction: 54.3 }, // TS+Lint 1 each
+          { files: 5, reduction: 61.9 }, // TS+Lint 5 each
+          { files: 10, reduction: 64.3 }, // TS+Lint 10 each
+          { files: 15, reduction: 65.2 }, // TS+Lint 15 each
+          { files: 30, reduction: 83.9 }, // TS+Lint 30 each
+        ];
+
+        const W = svg.parentElement.offsetWidth || 360;
+        svg.setAttribute('width', W);
+        const H = 240;
+        const mL = 42,
+          mR = 20,
+          mT = 20,
+          mB = 50;
+        const cW = W - mL - mR,
+          cH = H - mT - mB;
+
+        const xScale = (files) => mL + (files / 30) * cW;
+        const yScale = (pct) => mT + (1 - (pct - 40) / 60) * cH;
+
+        let html = '';
+
+        // Grid
+        [40, 50, 60, 70, 80, 90, 100].forEach((v) => {
+          const y = yScale(v);
+          if (y >= mT && y <= mT + cH) {
+            html += `<line x1="${mL}" x2="${mL + cW}" y1="${y}" y2="${y}" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>`;
+            html += `<text x="${mL - 6}" y="${y + 4}" text-anchor="end" fill="var(--text-muted)" font-size="9">${v}%</text>`;
+          }
+        });
+
+        [1, 5, 10, 15, 30].forEach((f) => {
+          const x = xScale(f);
+          html += `<text x="${x}" y="${mT + cH + 16}" text-anchor="middle" fill="var(--text-muted)" font-size="9">${f}</text>`;
+        });
+
+        // Axis labels
+        html += `<text x="${mL + cW / 2}" y="${H - 4}" text-anchor="middle" fill="var(--text-muted)" font-size="9.5">Arquivos com erros</text>`;
+
+        // Area fill
+        const pts = scaleData
+          .map((d) => `${xScale(d.files)},${yScale(d.reduction)}`)
+          .join(' ');
+        const firstX = xScale(scaleData[0].files),
+          lastX = xScale(scaleData[scaleData.length - 1].files);
+        const bottomY = mT + cH;
+        html += `<polygon points="${firstX},${bottomY} ${pts} ${lastX},${bottomY}" fill="rgba(59,130,246,0.12)"/>`;
+
+        // Line
+        const linePts = scaleData
+          .map((d) => `${xScale(d.files)},${yScale(d.reduction)}`)
+          .join(' L ');
+        html += `<polyline points="${scaleData.map((d) => `${xScale(d.files)},${yScale(d.reduction)}`).join(' ')}" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linejoin="round"/>`;
+
+        // Dots
+        scaleData.forEach((d) => {
+          html += `<circle cx="${xScale(d.files)}" cy="${yScale(d.reduction)}" r="5" fill="#3b82f6" stroke="white" stroke-width="2"/>`;
+          html += `<text x="${xScale(d.files)}" y="${yScale(d.reduction) - 9}" text-anchor="middle" fill="#3b82f6" font-size="9" font-weight="700">${d.reduction}%</text>`;
+        });
+
+        // Annotation
+        const annX = xScale(30) - 5,
+          annY = yScale(83.9) - 20;
+        html += `<text x="${annX}" y="${annY}" text-anchor="end" fill="var(--warning)" font-size="9" font-weight="600">Quanto maior o projeto,</text>`;
+        html += `<text x="${annX}" y="${annY + 12}" text-anchor="end" fill="var(--warning)" font-size="9" font-weight="600">maior a economia →</text>`;
+
+        svg.innerHTML = html;
+      }
+
+      // ─── CHART B3: COMPARISON ─────────────────────────────────
+      function renderCompareChart() {
+        const svg = document.getElementById('chart-compare');
+        const containerW = svg.parentElement.offsetWidth || 700;
+        const W = Math.max(containerW, 560);
+        const H = 300;
+        const mL = 55,
+          mR = 20,
+          mT = 20,
+          mB = 80;
+        const cW = W - mL - mR,
+          cH = H - mT - mB;
+        svg.setAttribute('width', W);
+        svg.setAttribute('height', H);
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+        const maxTok = Math.max(...benchmarks.map((b) => b.normalTokens));
+        const n = benchmarks.length;
+        const slotW = cW / n;
+        const pairW = slotW * 0.8;
+        const bW = pairW / 2 - 2;
+
+        let html = '';
+
+        // Y-axis
+        const yTicks = [0, 2000, 4000, 6000, 8000];
+        yTicks.forEach((v) => {
+          const y = mT + (1 - v / maxTok) * cH;
+          if (y >= mT) {
+            html += `<line x1="${mL}" x2="${mL + cW}" y1="${y}" y2="${y}" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4"/>`;
+            html += `<text x="${mL - 6}" y="${y + 4}" text-anchor="end" fill="var(--text-muted)" font-size="9">${(v / 1000).toFixed(0)}k</text>`;
+          }
+        });
+
+        benchmarks.forEach((b, i) => {
+          const slotX = mL + i * slotW;
+          const pairX = slotX + (slotW - pairW) / 2;
+
+          const nH = (b.normalTokens / maxTok) * cH;
+          const cH2 = (b.compactTokens / maxTok) * cH;
+          const nY = mT + cH - nH;
+          const cY2 = mT + cH - cH2;
+
+          html += `<rect x="${pairX}" y="${nY}" width="${bW}" height="${nH}" fill="#ef4444" rx="3" style="cursor:pointer"
+      onmousemove="showTooltip(event,'<strong>${b.scenarioLabel}</strong>Normal: ${b.normalTokens.toLocaleString('pt-BR')} tok')"
+      onmouseleave="hideTooltip()"
+    />`;
+          html += `<rect x="${pairX + bW + 2}" y="${cY2}" width="${bW}" height="${cH2}" fill="#22c55e" rx="3" style="cursor:pointer"
+      onmousemove="showTooltip(event,'<strong>${b.scenarioLabel}</strong>Compacto: ${b.compactTokens.toLocaleString('pt-BR')} tok')"
+      onmouseleave="hideTooltip()"
+    />`;
+
+          const labelY = mT + cH + 10;
+          const lx = slotX + slotW / 2;
+          html += `<text x="${lx}" y="${labelY}" text-anchor="end" transform="rotate(-38,${lx},${labelY})" fill="var(--text-muted)" font-size="9">${b.scenarioLabel}</text>`;
+        });
+
+        svg.innerHTML = html;
+      }
+
+      function renderCharts() {
+        renderBarChart();
+        renderScaleChart();
+        renderCompareChart();
+      }
+
+      window.addEventListener('resize', renderCharts);
+
+      // ─── SCALING BARS (Benefits section) ──────────────────────
+      function renderScalingBars() {
+        const container = document.getElementById('scaling-bars');
+        const rows = [
+          { label: '1 arquivo', pct: 46.2 },
+          { label: '5 arquivos', pct: 55.8 },
+          { label: '10 arqs.', pct: 64.3 },
+          { label: '30 arqs.', pct: 83.9 },
+          { label: 'Edge case', pct: 97.2 },
+        ];
+        container.innerHTML = rows
+          .map(
+            (r) => `
+    <div class="scaling-row">
+      <span class="scaling-row-label">${r.label}</span>
+      <div class="scaling-bar-track">
+        <div class="scaling-bar-fill" style="width:0%" data-target="${r.pct}"></div>
+      </div>
+      <span class="scaling-row-pct">${r.pct}%</span>
+    </div>
+  `,
+          )
+          .join('');
+      }
+
+      // ─── CARDS ────────────────────────────────────────────────
+      let activeFilter = 'all';
+      let activeSort = 'reduction-desc';
+
+      function getFilteredSorted() {
+        let data = [...benchmarks];
+        if (activeFilter === 'lint')
+          data = data.filter(
+            (b) =>
+              b.errorTypes.length === 1 &&
+              b.errorTypes[0] === 'lint' &&
+              !b.isEdgeCase,
+          );
+        else if (activeFilter === 'typecheck')
+          data = data.filter(
+            (b) => b.errorTypes.length === 1 && b.errorTypes[0] === 'typecheck',
+          );
+        else if (activeFilter === 'both')
+          data = data.filter(
+            (b) =>
+              b.errorTypes.includes('lint') &&
+              b.errorTypes.includes('typecheck'),
+          );
+        else if (activeFilter === 'edge')
+          data = data.filter((b) => b.isEdgeCase);
+
+        if (activeSort === 'reduction-desc')
+          data.sort((a, b) => b.reductionPercent - a.reductionPercent);
+        else if (activeSort === 'reduction-asc')
+          data.sort((a, b) => a.reductionPercent - b.reductionPercent);
+        else if (activeSort === 'files-desc')
+          data.sort((a, b) => b.filesChanged - a.filesChanged);
+        else if (activeSort === 'files-asc')
+          data.sort((a, b) => a.filesChanged - b.filesChanged);
+
+        return data;
+      }
+
+      function makeDonut(pct, size = 52) {
+        const r = size / 2 - 5,
+          cx = size / 2,
+          cy = size / 2;
+        const circ = 2 * Math.PI * r;
+        const dash = (pct / 100) * circ;
+        const color = pct >= 90 ? '#f59e0b' : '#22c55e';
+        return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="5"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="5"
+      stroke-dasharray="${dash} ${circ - dash}"
+      stroke-dashoffset="${circ * 0.25}"
+      stroke-linecap="round"
+      transform="rotate(-90 ${cx} ${cy})"
+    />
+  </svg>`;
+      }
+
+      function renderCards() {
+        const grid = document.getElementById('cards-grid');
+        const data = getFilteredSorted();
+        if (data.length === 0) {
+          grid.innerHTML =
+            '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:2rem">Nenhum benchmark encontrado para este filtro.</p>';
+          return;
+        }
+        grid.innerHTML = data
+          .map((b, idx) => {
+            const realIdx = benchmarks.indexOf(b);
+            return `<div class="bench-card ${b.isEdgeCase ? 'edge-case' : 'standard'}" data-idx="${realIdx}" tabindex="0" role="button" aria-label="Ver detalhes: ${b.scenarioLabel}">
+      <span class="card-badge ${b.isEdgeCase ? 'edge' : 'std'}">${b.isEdgeCase ? 'Caso Extremo' : 'Padrão'}</span>
+      <div class="card-title">${b.scenarioLabel}</div>
+      <div class="card-donut-row">
+        ${makeDonut(b.reductionPercent)}
+        <div>
+          <div class="card-donut-percent">${b.reductionPercent}%</div>
+          <div class="card-donut-label">economia de tokens</div>
+        </div>
+      </div>
+      <div class="token-flow">
+        <span class="token-normal">${b.normalTokens.toLocaleString('pt-BR')}</span>
+        <span class="token-arrow">→</span>
+        <span class="token-compact">${b.compactTokens.toLocaleString('pt-BR')}</span>
+        <span style="font-size:0.72rem;color:var(--text-subtle)">tokens</span>
+      </div>
+      <div class="card-meta">
+        <span>📁 ${b.filesChanged} arquivo${b.filesChanged !== 1 ? 's' : ''}</span>
+        <span>💾 −${b.savedTokens.toLocaleString('pt-BR')} tok</span>
+      </div>
+    </div>`;
+          })
+          .join('');
+
+        // Attach click handlers
+        grid.querySelectorAll('.bench-card').forEach((card) => {
+          const handler = () => openModal(parseInt(card.dataset.idx));
+          card.addEventListener('click', handler);
+          card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') handler();
+          });
+        });
+      }
+
+      // ─── FILTERS ──────────────────────────────────────────────
+      function setupFilters() {
+        document.querySelectorAll('.filter-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            document
+              .querySelectorAll('.filter-btn')
+              .forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeFilter = btn.dataset.filter;
+            renderCards();
+          });
+        });
+
+        document
+          .getElementById('sort-select')
+          .addEventListener('change', (e) => {
+            activeSort = e.target.value;
+            renderCards();
+          });
+      }
+
+      // ─── MODAL ────────────────────────────────────────────────
+      function setupModal() {
+        const overlay = document.getElementById('modal-overlay');
+        const closeBtn = document.getElementById('modal-close');
+        closeBtn.addEventListener('click', closeModal);
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) closeModal();
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') closeModal();
+        });
+      }
+
+      function openModal(idx) {
+        const b = benchmarks[idx];
+        const overlay = document.getElementById('modal-overlay');
+
+        document.getElementById('modal-badge').textContent = b.isEdgeCase
+          ? 'Caso Extremo'
+          : 'Padrão';
+        document.getElementById('modal-badge').className =
+          `card-badge ${b.isEdgeCase ? 'edge' : 'std'}`;
+        document.getElementById('modal-title').textContent = b.scenarioLabel;
+
+        const dt = new Date(b.date);
+        document.getElementById('modal-date').textContent = dt.toLocaleString(
+          'pt-BR',
+          {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          },
+        );
+
+        const errorLabel =
+          b.errorTypes.length === 2
+            ? 'Lint + TypeScript'
+            : b.errorTypes[0] === 'lint'
+              ? 'ESLint'
+              : 'TypeScript';
+
+        const beforeExample =
+          b.errorTypes.includes('lint') && !b.errorTypes.includes('typecheck')
+            ? `src/components/Driver.tsx
+  Line 42:3  error  Unexpected console statement  no-console
+  Line 43:3  error  Unexpected console statement  no-console
+
+src/screens/Home.tsx
+  Line 15:5  error  Unexpected console statement  no-console
+
+✖ 3 problems (3 errors, 0 warnings)`
+            : b.errorTypes.includes('typecheck') &&
+                !b.errorTypes.includes('lint')
+              ? `src/components/Booking.tsx(24,18): error TS2345:
+  Argument of type 'number' is not assignable to
+  parameter of type 'string'.
+    .toUpperCase() is not a method on number.
+
+src/screens/Trip.tsx(87,12): error TS2339:
+  Property 'id' does not exist on type 'never'.`
+              : `src/components/Driver.tsx
+  Line 12:3  error  no-console
+
+src/screens/Home.tsx
+  Line 8:5   error  no-console
+
+src/screens/Trip.tsx(24,18): error TS2345:
+  Argument of type 'number' is not assignable
+  to parameter of type 'string'.`;
+
+        const afterExample =
+          b.errorTypes.includes('lint') && !b.errorTypes.includes('typecheck')
+            ? `src/components/Driver.tsx:42:3: no-console
+src/components/Driver.tsx:43:3: no-console
+src/screens/Home.tsx:15:5: no-console`
+            : b.errorTypes.includes('typecheck') &&
+                !b.errorTypes.includes('lint')
+              ? `src/components/Booking.tsx:24:18: TS2345
+src/screens/Trip.tsx:87:12: TS2339`
+              : `src/components/Driver.tsx:12:3: no-console
+src/screens/Home.tsx:8:5: no-console
+src/screens/Trip.tsx:24:18: TS2345`;
+
+        const insightText = b.isEdgeCase
+          ? `Neste caso extremo, o output padrão repete cabeçalhos, contexto de regra e formatação decorativa para <strong>cada ocorrência</strong> de erro. Com o <code>ai:check</code>, cada erro ocupa exatamente uma linha no formato <code>arquivo:linha:col: código</code>, eliminando ${Math.round((1 - b.compactTokens / b.normalTokens) * 100)}% do volume.`
+          : b.filesChanged > 15
+            ? `Com ${b.filesChanged} arquivos modificados, o output padrão repete cabeçalhos e formatação para cada arquivo, enquanto o formato compacto agrupa erros por regra, eliminando redundância. A economia cresce com a escala: aqui chegamos a <strong>${b.reductionPercent}%</strong>.`
+            : `O formato compacto do <code>ai:check</code> elimina cabeçalhos repetitivos, contexto de regra por extenso e formatação decorativa. Cada erro ocupa uma única linha, reduzindo o consumo de tokens em <strong>${b.reductionPercent}%</strong> neste cenário.`;
+
+        document.getElementById('modal-body').innerHTML = `
+    <div class="modal-stats-grid">
+      <div class="modal-stat">
+        <div class="modal-stat-label">Tokens normais</div>
+        <div class="modal-stat-value" style="color:var(--danger)">${b.normalTokens.toLocaleString('pt-BR')}</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-label">Tokens compactos</div>
+        <div class="modal-stat-value" style="color:var(--accent-dark)">${b.compactTokens.toLocaleString('pt-BR')}</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-label">Tokens economizados</div>
+        <div class="modal-stat-value" style="color:var(--accent)">${b.savedTokens.toLocaleString('pt-BR')}</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-label">Redução</div>
+        <div class="modal-stat-value">${b.reductionPercent}%</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-label">Chars normais</div>
+        <div class="modal-stat-value">${b.normalChars.toLocaleString('pt-BR')}</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-label">Chars compactos</div>
+        <div class="modal-stat-value">${b.compactChars.toLocaleString('pt-BR')}</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-label">Arquivos alterados</div>
+        <div class="modal-stat-value">${b.filesChanged}</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-label">Tipo de erro</div>
+        <div class="modal-stat-value" style="font-size:0.85rem">${errorLabel}</div>
+      </div>
+    </div>
+
+    <div class="modal-section-title">Diff Summary</div>
+    <div class="command-block">${b.diffSummary}</div>
+
+    <div class="modal-section-title">Comandos Comparados</div>
+    <div style="display:flex;gap:0.3rem;align-items:center;margin-bottom:0.4rem">
+      <span style="font-size:0.72rem;color:var(--danger);font-weight:700;width:70px">ANTES</span>
+      <div class="command-block" style="flex:1;margin:0">${b.normalCommand}</div>
+    </div>
+    <div style="display:flex;gap:0.3rem;align-items:center">
+      <span style="font-size:0.72rem;color:var(--accent-dark);font-weight:700;width:70px">DEPOIS</span>
+      <div class="command-block" style="flex:1;margin:0">${b.compactCommand}</div>
+    </div>
+
+    <div class="modal-section-title">Comparação Visual de Output</div>
+    <div class="before-after-grid">
+      <div class="code-panel before">
+        <div class="code-panel-header">Antes — output padrão (verboso)</div>
+        <pre>${beforeExample}</pre>
+      </div>
+      <div class="code-panel after">
+        <div class="code-panel-header">Depois — ai:check (compacto)</div>
+        <pre>${afterExample}</pre>
+      </div>
+    </div>
+
+    <div class="modal-insight">${insightText}</div>
+  `;
+
+        overlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeModal() {
+        document.getElementById('modal-overlay').classList.remove('open');
+        document.body.style.overflow = '';
+      }
+
+      // ─── INTERSECTION OBSERVER ────────────────────────────────
+      function setupIntersectionObserver() {
+        const io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+
+                // Animate scaling bars when benefits section becomes visible
+                const fills =
+                  entry.target.querySelectorAll('.scaling-bar-fill');
+                fills.forEach((fill) => {
+                  setTimeout(() => {
+                    fill.style.width = fill.dataset.target + '%';
+                  }, 200);
+                });
+              }
+            });
+          },
+          { threshold: 0.12 },
+        );
+
+        document
+          .querySelectorAll('.animate-in')
+          .forEach((el) => io.observe(el));
+
+        // Separate observer for scaling bars
+        const scalingSection = document.getElementById('beneficios');
+        const scalingIo = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                document
+                  .querySelectorAll('.scaling-bar-fill')
+                  .forEach((fill) => {
+                    setTimeout(() => {
+                      fill.style.width = fill.dataset.target + '%';
+                    }, 300);
+                  });
+              }
+            });
+          },
+          { threshold: 0.2 },
+        );
+        if (scalingSection) scalingIo.observe(scalingSection);
+      }
+    </script>
+  </body>
+</html>
